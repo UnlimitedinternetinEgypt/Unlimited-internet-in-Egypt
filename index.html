@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مصر تستغيث | غرفة العمليات</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        body { background-color: #020202; color: #fff; font-family: 'Cairo', sans-serif; overflow-x: hidden; padding-bottom: 60px; }
+        
+        .glow-text { text-shadow: 0 0 20px #dc2626; }
+        .border-glow { box-shadow: 0 0 15px rgba(220, 38, 38, 0.4); border: 1px solid #7f1d1d; }
+        
+        /* شاشة القفل للمستخدم */
+        #lock-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #000; z-index: 50; display: none; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+
+        /* زر الطوارئ للأدمن */
+        #admin-btn {
+            position: fixed; top: 20px; left: 20px; z-index: 100;
+            background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 5px;
+            cursor: pointer; border: 1px solid rgba(255,255,255,0.2); transition: 0.3s;
+        }
+        #admin-btn:hover { background: #dc2626; border-color: #dc2626; }
+
+        /* غرفة التحكم الكاملة (Dashboard) */
+        #admin-dashboard {
+            position: fixed; inset: 0; z-index: 200; background: #050505;
+            display: none; overflow-y: auto;
+        }
+        .admin-sidebar { width: 260px; background: #111; height: 100vh; position: fixed; right: 0; top: 0; padding: 25px; border-left: 1px solid #333; }
+        .admin-content { margin-right: 260px; padding: 30px; }
+        .tab-btn { transition: 0.3s; color: #888; }
+        .tab-btn:hover, .tab-btn.active { background: #b91c1c; color: white; }
+        
+        @media (max-width: 768px) {
+            .admin-sidebar { width: 100%; height: auto; position: relative; border-left: none; border-bottom: 1px solid #333; }
+            .admin-content { margin-right: 0; }
+        }
+
+        /* شريط الأخبار */
+        .ticker-wrap {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 45px;
+            background: #b91c1c; border-top: 2px solid white; z-index: 40;
+            display: flex; items-center; overflow: hidden;
+        }
+        .ticker-move { display: inline-block; white-space: nowrap; animation: marquee 25s linear infinite; font-weight: bold; font-size: 1.1rem; }
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(100%); } }
+
+        /* عداد الأونلاين */
+        .live-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: rgba(220, 38, 38, 0.2); border: 1px solid #dc2626;
+            padding: 5px 15px; border-radius: 20px; color: #fca5a5; font-size: 0.9rem;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
+    </style>
+</head>
+<body>
+
+    <button id="admin-btn" onclick="checkAdmin()" title="غرفة التحكم"><i class="fas fa-cogs"></i> الإدارة</button>
+
+    <div id="lock-screen">
+        <i class="fas fa-ban fa-6x text-red-600 mb-4 animate-pulse"></i>
+        <h1 class="text-5xl font-black text-white">الموقع مغلق للصيانة</h1>
+        <p class="text-gray-500 mt-4">الإدارة تعمل الآن على التحديثات.. عد لاحقاً</p>
+    </div>
+
+    <div id="admin-dashboard">
+        <div class="admin-sidebar">
+            <h2 class="text-2xl font-black text-red-600 mb-8 flex items-center gap-2">
+                <i class="fas fa-user-shield"></i> غرفة القيادة
+            </h2>
+            <nav class="space-y-2">
+                <button onclick="switchTab('tab-home')" class="tab-btn active w-full text-right p-3 rounded font-bold block"><i class="fas fa-home ml-2"></i> الرئيسية</button>
+                <button onclick="switchTab('tab-comments')" class="tab-btn w-full text-right p-3 rounded font-bold block"><i class="fas fa-comments ml-2"></i> إدارة التعليقات</button>
+                <button onclick="switchTab('tab-notify')" class="tab-btn w-full text-right p-3 rounded font-bold block"><i class="fas fa-bullhorn ml-2"></i> التنبيهات والأخبار</button>
+                <button onclick="switchTab('tab-settings')" class="tab-btn w-full text-right p-3 rounded font-bold block"><i class="fas fa-sliders-h ml-2"></i> التحكم في الأرقام</button>
+            </nav>
+            <button onclick="exitAdmin()" class="mt-8 w-full border border-red-600 text-red-500 hover:bg-red-600 hover:text-white p-3 rounded font-bold transition">
+                <i class="fas fa-sign-out-alt"></i> خروج
+            </button>
+        </div>
+
+        <div class="admin-content">
+            <div id="tab-home" class="tab-content">
+                <h2 class="text-3xl font-bold mb-6 text-red-500">لوحة المعلومات</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-[#111] p-6 rounded-xl border-r-4 border-red-600">
+                        <div class="text-gray-400">إجمالي الأصوات</div>
+                        <div class="text-4xl font-black" id="adm-display-votes">0</div>
+                    </div>
+                    <div class="bg-[#111] p-6 rounded-xl border-r-4 border-yellow-500">
+                        <div class="text-gray-400">عدد التعليقات</div>
+                        <div class="text-4xl font-black" id="adm-display-comments">0</div>
+                    </div>
+                    <div class="bg-[#111] p-6 rounded-xl border-r-4 border-green-500">
+                        <div class="text-gray-400">حالة الموقع</div>
+                        <div class="text-2xl font-bold" id="adm-status-text">مفتوح</div>
+                    </div>
+                </div>
+
+                <div class="bg-[#111] p-6 rounded-xl mb-6 border border-gray-800">
+                    <h3 class="text-xl font-bold mb-4 text-red-400">🚨 التحكم السريع</h3>
+                    <div class="flex items-center justify-between bg-black p-4 rounded border border-gray-700">
+                        <div>
+                            <span class="font-bold block">قفل الموقع (Kill Switch)</span>
+                            <span class="text-xs text-gray-500">إخفاء الموقع عن الجميع وإظهار شاشة صيانة.</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="adm-lock-toggle" class="sr-only peer" onchange="toggleSiteLock()">
+                            <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <button onclick="exportData()" class="bg-green-700 hover:bg-green-800 text-white px-6 py-3 rounded font-bold flex items-center gap-2">
+                    <i class="fas fa-file-excel"></i> تحميل قاعدة البيانات (Excel)
+                </button>
+            </div>
+
+            <div id="tab-comments" class="tab-content hidden">
+                <h2 class="text-3xl font-bold mb-6 text-red-500">إدارة التعليقات</h2>
+                <div class="bg-[#111] rounded-xl overflow-hidden border border-gray-800">
+                    <table class="w-full text-right">
+                        <thead class="bg-black text-gray-300">
+                            <tr>
+                                <th class="p-4">الاسم</th>
+                                <th class="p-4">التعليق</th>
+                                <th class="p-4">إجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adm-comments-table" class="divide-y divide-gray-800"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-notify" class="tab-content hidden">
+                <h2 class="text-3xl font-bold mb-6 text-red-500">التنبيهات</h2>
+                <div class="bg-[#111] p-6 rounded-xl border border-gray-800 mb-6">
+                    <label class="block mb-2 font-bold">شريط الأخبار (أسفل الموقع)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="adm-ticker-msg" class="w-full bg-black border border-gray-600 p-3 rounded text-white" placeholder="اكتب الخبر العاجل...">
+                        <button onclick="updateTickerMsg()" class="bg-yellow-600 hover:bg-yellow-700 px-6 py-2 rounded font-bold text-black">تحديث</button>
+                    </div>
+                </div>
+                <div class="bg-[#111] p-6 rounded-xl border border-gray-800">
+                    <label class="block mb-2 font-bold">رسالة منبثقة (Popup للجميع)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="adm-broadcast-msg" class="w-full bg-black border border-gray-600 p-3 rounded text-white" placeholder="رسالة تظهر فجأة للمستخدمين...">
+                        <button onclick="sendBroadcast()" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded font-bold">إرسال</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-settings" class="tab-content hidden">
+                <h2 class="text-3xl font-bold mb-6 text-red-500">الأرقام والعدادات</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-[#111] p-6 rounded-xl border border-gray-800">
+                        <label class="block mb-2 font-bold">تعديل الأصوات يدوياً</label>
+                        <input type="number" id="adm-input-votes" class="w-full bg-black border border-gray-600 p-3 rounded text-white mb-2">
+                        <button onclick="saveStats()" class="bg-red-600 w-full py-2 rounded font-bold">حفظ التغيير</button>
+                    </div>
+                    <div class="bg-[#111] p-6 rounded-xl border border-gray-800">
+                        <label class="block mb-2 font-bold">تعديل الهدف النهائي</label>
+                        <input type="number" id="adm-input-goal" class="w-full bg-black border border-gray-600 p-3 rounded text-white mb-2">
+                        <button onclick="saveStats()" class="bg-red-600 w-full py-2 rounded font-bold">حفظ التغيير</button>
+                    </div>
+                </div>
+                
+                <div class="mt-8 border-t border-gray-800 pt-6">
+                    <button onclick="resetEverything()" class="w-full bg-red-900/20 text-red-500 border border-red-500 px-6 py-4 rounded hover:bg-red-600 hover:text-white transition font-bold text-lg">
+                        <i class="fas fa-skull"></i> تصفير قاعدة البيانات بالكامل (Format)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        
+        <header class="text-center pt-12 pb-6 relative">
+            <div class="absolute top-4 right-4 live-badge">
+                <span class="w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+                <span id="online-users">1,240</span> متواجد الآن
+            </div>
+
+            <h1 class="text-5xl md:text-7xl font-black text-red-600 glow-text mb-2">#انترنت_غير_محدود_في_مصر</h1>
+            <p class="text-xl text-gray-300">شارك وافضح سوء الخدمة .. حقك مش هيضيع</p>
+        </header>
+
+        <div class="container mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl">
+            
+            <div class="lg:col-span-8 space-y-8">
+                
+                <div class="bg-[#0a0a0a] rounded-2xl p-8 text-center border-glow relative">
+                    <h2 class="text-gray-400 font-bold mb-1">عدد المطالبين بالحق</h2>
+                    <div id="vote-display" class="text-8xl font-black text-white mb-2 tracking-tighter">0</div>
+                    
+                    <div class="w-full bg-gray-900 h-6 rounded-full overflow-hidden border border-gray-700 relative">
+                        <div id="progress-bar" class="h-full bg-gradient-to-r from-red-800 to-red-500 transition-all duration-1000"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500 mt-1 font-mono">
+                        <span id="progress-text">0%</span>
+                        <span id="goal-display">Goal: 1M</span>
+                    </div>
+                </div>
+
+                <div class="bg-[#111] p-6 rounded-2xl border border-gray-800">
+                    <h3 class="text-2xl font-bold mb-6 text-red-500 flex items-center gap-2">
+                        <i class="fas fa-bullhorn"></i> ارفع صوتك
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="text-xs text-gray-400 block mb-1">المحافظة</label>
+                            <select id="gov-select" class="w-full bg-black border border-gray-600 p-3 rounded text-white focus:border-red-500 outline-none">
+                                <option value="" disabled selected>اختار محافظتك..</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400 block mb-1">الشركة المشترك فيها</label>
+                            <select id="isp-select" class="w-full bg-black border border-gray-600 p-3 rounded text-white focus:border-red-500 outline-none">
+                                <option value="" disabled selected>اختار الشركة..</option>
+                                <option value="WE">WE (المصرية للاتصالات)</option>
+                                <option value="Vodafone">Vodafone (فودافون)</option>
+                                <option value="Orange">Orange (أورانج)</option>
+                                <option value="Etisalat">Etisalat (اتصالات)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button onclick="vote()" class="w-full bg-red-700 hover:bg-red-600 text-white font-black text-2xl py-4 rounded-xl shadow-lg transition transform hover:scale-[1.02] active:scale-95">
+                        <i class="fas fa-fist-raised"></i> تسجيل صوتي
+                    </button>
+                    <p class="text-center text-xs text-gray-600 mt-2">سيتم إضافة صوتك للإحصائيات العامة وإحصائيات الشركات</p>
+                </div>
+
+                <div class="bg-[#111] p-6 rounded-2xl border border-gray-800">
+                    <h3 class="font-bold mb-4 text-gray-300">صرخات الجمهور</h3>
+                    <div class="flex gap-2 mb-4">
+                        <input id="c-name" placeholder="الاسم" class="bg-black border border-gray-700 p-2 rounded w-1/4 text-white">
+                        <input id="c-text" placeholder="الرسالة.." class="bg-black border border-gray-700 p-2 rounded w-full text-white">
+                        <button onclick="comment()" class="bg-white text-black font-bold px-4 rounded hover:bg-gray-300">نشر</button>
+                    </div>
+                    <div id="comments-feed" class="max-h-64 overflow-y-auto space-y-2 pr-2"></div>
+                </div>
+
+            </div>
+
+            <div class="lg:col-span-4 space-y-8">
+                
+                <div class="bg-[#111] p-5 rounded-2xl border border-gray-800">
+                    <h3 class="font-bold mb-4 text-red-400 border-b border-gray-800 pb-2">📊 أسوأ شركة إنترنت</h3>
+                    <canvas id="ispChart" height="250"></canvas>
+                </div>
+
+                <div class="bg-[#111] p-5 rounded-2xl border border-gray-800">
+                    <h3 class="font-bold mb-4 text-yellow-500">🏆 أنشط المحافظات</h3>
+                    <div id="leaderboard" class="space-y-2 text-sm"></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="share('fb')" class="bg-[#1877F2] py-3 rounded font-bold hover:bg-blue-600 transition flex items-center justify-center gap-2"><i class="fab fa-facebook"></i> فيسبوك</button>
+                    <button onclick="share('wa')" class="bg-[#25D366] py-3 rounded font-bold hover:bg-green-600 transition flex items-center justify-center gap-2"><i class="fab fa-whatsapp"></i> واتساب</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="ticker-wrap">
+        <div class="ticker-move" id="live-ticker">جاري الاتصال بالسيرفر...</div>
+    </div>
+
+    <audio id="vote-sound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, setDoc, getDoc, arrayUnion, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAF41zzgR3LDouYARxyM-4w2EBuwENYoOE",
+            authDomain: "fares-e1563.firebaseapp.com",
+            projectId: "fares-e1563",
+            storageBucket: "fares-e1563.firebasestorage.app",
+            messagingSenderId: "992374067000",
+            appId: "1:992374067000:web:452da213e50a1da2fdfbcd",
+            measurementId: "G-0DMYRCTHY0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        // V13 لضمان نظافة البيانات مع اللوحة الجديدة
+        const docRef = doc(db, "campaign_final_v13", "data");
+
+        // --- Data Setup ---
+        const governorates = ["القاهرة", "الجيزة", "الإسكندرية", "الدقهلية", "الشرقية", "المنوفية", "القليوبية", "البحيرة", "الغربية", "بور سعيد", "دمياط", "الإسماعيلية", "السويس", "كفر الشيخ", "الفيوم", "بني سويف", "المنيا", "أسيوط", "سوهاج", "قنا", "الأقصر", "أسوان", "البحر الأحمر", "الوادي الجديد", "مطروح", "شمال سيناء", "جنوب سيناء"];
+        const govSelect = document.getElementById('gov-select');
+        governorates.forEach(g => {
+            const opt = document.createElement('option'); opt.value = g; opt.innerText = g; govSelect.appendChild(opt);
+        });
+
+        // --- Charts ---
+        const ispChartCtx = document.getElementById('ispChart').getContext('2d');
+        const ispChart = new Chart(ispChartCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['WE', 'Vodafone', 'Orange', 'Etisalat'],
+                datasets: [{
+                    data: [0,0,0,0],
+                    backgroundColor: ['#6b21a8', '#dc2626', '#f97316', '#16a34a'],
+                    borderWidth: 0
+                }]
+            },
+            options: { plugins: { legend: { position: 'bottom', labels: { color: 'white', font:{family:'Cairo'} } } } }
+        });
+
+        // --- Init ---
+        async function init() {
+            const snap = await getDoc(docRef);
+            if(!snap.exists()) {
+                await setDoc(docRef, {
+                    votes: 15400, goal: 1000000, isLocked: false,
+                    lastAction: { text: "بدء الحملة", time: "الآن" },
+                    comments: [],
+                    govs: {},
+                    isps: { "WE": 50, "Vodafone": 40, "Orange": 20, "Etisalat": 30 },
+                    ticker: "حملة المليون مستمرة.. شارك الآن!",
+                    broadcast: ""
+                });
+            }
+        }
+        init();
+
+        // --- Global Data Store ---
+        let currentData = {};
+
+        // --- Realtime Listener ---
+        onSnapshot(docRef, (snap) => {
+            if(snap.exists()) {
+                currentData = snap.data();
+
+                // 1. Lock Logic
+                const lock = document.getElementById('lock-screen');
+                const main = document.getElementById('main-content');
+                document.getElementById('adm-lock-toggle').checked = currentData.isLocked;
+                
+                if(currentData.isLocked) { 
+                    lock.style.display = 'flex'; main.style.display = 'none'; 
+                    document.getElementById('adm-status-text').innerText = "مغلق";
+                    document.getElementById('adm-status-text').className = "text-2xl font-bold text-red-500";
+                } else { 
+                    lock.style.display = 'none'; main.style.display = 'block'; 
+                    document.getElementById('adm-status-text').innerText = "مفتوح";
+                    document.getElementById('adm-status-text').className = "text-2xl font-bold text-green-500";
+                }
+
+                // 2. Votes & Stats
+                document.getElementById('vote-display').innerText = currentData.votes.toLocaleString();
+                document.getElementById('goal-display').innerText = "Goal: " + (currentData.goal/1000000) + "M";
+                const pct = Math.min((currentData.votes/currentData.goal)*100, 100).toFixed(1);
+                document.getElementById('progress-bar').style.width = pct + "%";
+                document.getElementById('progress-text').innerText = pct + "%";
+
+                // 3. Ticker & Broadcast
+                document.getElementById('live-ticker').innerText = currentData.ticker || "حملة المليون..";
+                if(currentData.broadcast && currentData.broadcast !== localStorage.getItem('last_bc')) {
+                    Swal.fire({title:'تنبيه هام', text: currentData.broadcast, icon:'info', background:'#111', color:'#fff'});
+                    localStorage.setItem('last_bc', currentData.broadcast);
+                }
+
+                // 4. ISP Chart
+                const isps = currentData.isps || { "WE":0, "Vodafone":0, "Orange":0, "Etisalat":0 };
+                ispChart.data.datasets[0].data = [isps.WE, isps.Vodafone, isps.Orange, isps.Etisalat];
+                ispChart.update();
+
+                // 5. Leaderboard
+                updateLeaderboard(currentData.govs || {});
+                
+                // 6. Comments (Public & Admin)
+                renderComments(currentData.comments || []);
+                renderAdminComments(currentData.comments || []);
+
+                // 7. Sync Admin Inputs
+                document.getElementById('adm-display-votes').innerText = currentData.votes.toLocaleString();
+                document.getElementById('adm-display-comments').innerText = (currentData.comments || []).length;
+                document.getElementById('adm-input-votes').value = currentData.votes;
+                document.getElementById('adm-input-goal').value = currentData.goal;
+                document.getElementById('adm-ticker-msg').value = currentData.ticker;
+            }
+        });
+
+        // Online Simulator
+        setInterval(() => {
+            const base = 1200;
+            const variance = Math.floor(Math.random() * 300);
+            document.getElementById('online-users').innerText = (base + variance).toLocaleString();
+        }, 3000);
+
+        function updateLeaderboard(govs) {
+            const list = document.getElementById('leaderboard');
+            list.innerHTML = '';
+            Object.entries(govs).sort((a,b)=>b[1]-a[1]).slice(0,5).forEach((item, idx) => {
+                list.innerHTML += `
+                    <div class="flex justify-between bg-gray-900 p-2 rounded border border-gray-700">
+                        <span class="${idx===0?'text-yellow-400 font-bold':'text-gray-300'}">#${idx+1} ${item[0]}</span>
+                        <span class="font-mono">${item[1]}</span>
+                    </div>`;
+            });
+        }
+
+        function renderComments(arr) {
+            const feed = document.getElementById('comments-feed');
+            feed.innerHTML = '';
+            [...arr].reverse().forEach(c => {
+                feed.innerHTML += `
+                    <div class="bg-gray-900 p-2 rounded border-r-2 border-red-600 text-sm">
+                        <span class="text-red-400 font-bold">${c.user}</span>: <span class="text-gray-300">${c.text}</span>
+                    </div>`;
+            });
+        }
+
+        function renderAdminComments(arr) {
+            const tbody = document.getElementById('adm-comments-table');
+            tbody.innerHTML = '';
+            [...arr].reverse().forEach(c => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-900 transition border-b border-gray-800">
+                        <td class="p-3 font-bold text-white">${c.user}</td>
+                        <td class="p-3 text-gray-400">${c.text}</td>
+                        <td class="p-3">
+                            <button onclick="window.delComment('${c.id}')" class="bg-red-900/40 text-red-500 hover:bg-red-600 hover:text-white px-3 py-1 rounded text-sm transition">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        // --- User Actions ---
+        window.vote = async () => {
+            if(localStorage.getItem('voted_v13')) return Swal.fire({icon:'info', title:'تم التصويت', background:'#111', color:'#fff'});
+            
+            const city = document.getElementById('gov-select').value;
+            const isp = document.getElementById('isp-select').value;
+
+            if(!city || !isp) return Swal.fire({icon:'warning', title:'اكمل البيانات', background:'#111', color:'#fff'});
+
+            document.getElementById('vote-sound').play();
+
+            const snap = await getDoc(docRef);
+            const d = snap.data();
+            const govs = d.govs || {}; govs[city] = (govs[city] || 0) + 1;
+            const isps = d.isps || {}; isps[isp] = (isps[isp] || 0) + 1;
+
+            await updateDoc(docRef, {
+                votes: increment(1), govs: govs, isps: isps,
+                lastAction: { text: `صوت جديد من ${city} ضد ${isp}`, time: new Date().toLocaleTimeString('ar-EG') }
+            });
+
+            localStorage.setItem('voted_v13', 'true');
+            Swal.fire({icon:'success', title:'صوتك وصل!', showConfirmButton:false, timer:1500, background:'#111', color:'#fff'});
+        };
+
+        window.comment = async () => {
+            const user = document.getElementById('c-name').value;
+            const text = document.getElementById('c-text').value;
+            if(!user || !text) return;
+            const newC = { id: Date.now().toString(), user, text, date: new Date().toLocaleTimeString() };
+            await updateDoc(docRef, { comments: arrayUnion(newC) });
+            document.getElementById('c-text').value = '';
+        };
+
+        window.share = (p) => {
+            const u = window.location.href;
+            if(p=='fb') window.open(`https://www.facebook.com/sharer/sharer.php?u=${u}`);
+            if(p=='wa') window.open(`https://wa.me/?text=شارك في فضح شركات النت.. صوتك يفرق! ${u}`);
+        };
+
+        // --- ADMIN PANEL FUNCTIONS ---
+        
+        window.checkAdmin = async () => {
+            const {value:p} = await Swal.fire({input:'password', title:'كلمة المرور', background:'#111', color:'#fff', confirmButtonColor:'#dc2626'});
+            if(p==='010630') document.getElementById('admin-dashboard').style.display = 'block';
+        };
+
+        window.exitAdmin = () => document.getElementById('admin-dashboard').style.display = 'none';
+
+        window.switchTab = (id) => {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        };
+
+        window.toggleSiteLock = async () => {
+            const status = document.getElementById('adm-lock-toggle').checked;
+            await updateDoc(docRef, { isLocked: status });
+        };
+
+        window.saveStats = async () => {
+            await updateDoc(docRef, { 
+                votes: parseInt(document.getElementById('adm-input-votes').value),
+                goal: parseInt(document.getElementById('adm-input-goal').value)
+            });
+            Swal.fire('تم الحفظ', '', 'success');
+        };
+
+        window.updateTickerMsg = async () => {
+            await updateDoc(docRef, { ticker: document.getElementById('adm-ticker-msg').value });
+            Swal.fire('تم تحديث الخبر', '', 'success');
+        };
+
+        window.sendBroadcast = async () => {
+            await updateDoc(docRef, { broadcast: document.getElementById('adm-broadcast-msg').value });
+            Swal.fire('تم الإرسال', '', 'success');
+        };
+
+        window.delComment = async (id) => {
+            if(!confirm('حذف التعليق؟')) return;
+            const newComments = currentData.comments.filter(c => c.id !== id);
+            await updateDoc(docRef, { comments: newComments });
+        };
+
+        window.resetEverything = async () => {
+            if(confirm("تحذير: مسح شامل للداتا؟")) {
+                await setDoc(docRef, { votes: 0, goal: 1000000, isLocked: false, govs: {}, isps: {}, comments: [], ticker: '...' });
+                location.reload();
+            }
+        };
+
+        window.exportData = () => {
+            let csv = "User,Comment\n";
+            currentData.comments.forEach(c => csv += `${c.user},${c.text}\n`);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'data.csv';
+            a.click();
+        };
+
+    </script>
+</body>
+</html>
