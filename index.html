@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>حملة انترنت غير محدود</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #6366f1;
+            --dark-bg: #0f172a;
+            --dark-sidebar: #1e293b;
+            --light-text: #f8fafc;
+            --gray-text: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --card-radius: 12px;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f1f5f9;
+            margin: 0; padding: 0;
+            display: flex; justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* === تصميم واجهة المستخدم (الموقع) === */
+        .container { width: 100%; max-width: 500px; padding: 15px; }
+        
+        .main-card {
+            background: white; border-radius: 20px; padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;
+            margin-top: 20px;
+        }
+
+        h1 { text-align: center; color: var(--primary); font-size: 22px; font-weight: 800; margin-bottom: 20px; }
+
+        .btn-main {
+            width: 100%; padding: 15px; border-radius: 12px; border: none;
+            font-family: 'Cairo'; font-weight: bold; font-size: 15px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            color: white; transition: 0.2s; margin-bottom: 15px;
+        }
+        .btn-main:active { transform: scale(0.98); }
+        .bg-tele { background: #0088cc; }
+        
+        /* زر مهم جدا */
+        .urgent-wrap { text-align: center; margin: 30px 0; }
+        .btn-urgent {
+            background: #ef4444; color: white; padding: 12px 40px; border-radius: 50px;
+            border: none; font-weight: 800; font-family: 'Cairo'; font-size: 16px;
+            cursor: pointer; animation: pulse 1.5s infinite; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+        @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.05);} 100% {transform: scale(1);} }
+
+        /* الفورم */
+        #form-area {
+            display: none; background: #f0fdf4; border: 1px dashed #22c55e;
+            padding: 20px; border-radius: 15px; margin-bottom: 20px;
+        }
+        .inp { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: 'Cairo'; }
+        
+        /* الاحصائيات */
+        .stats-grid { display: flex; justify-content: space-between; text-align: center; background: #f8fafc; padding: 15px; border-radius: 12px; margin-top: 20px; }
+        .stat-num { display: block; font-weight: 900; font-size: 18px; }
+        
+        /* أزرار التصويت */
+        .vote-row { display: flex; gap: 10px; margin-top: 15px; }
+        .v-btn { flex: 1; padding: 15px; border-radius: 10px; border: none; font-weight: bold; font-family: 'Cairo'; cursor: pointer; }
+        .yes { background: #dcfce7; color: #166534; }
+        .no { background: #fee2e2; color: #991b1b; }
+
+        /* === تصميم لوحة التحكم الجديد (نظام الصفحات) === */
+        #admin-panel {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--dark-bg); color: var(--light-text); z-index: 9999;
+            flex-direction: row; /* عشان القائمة جانبية */
+        }
+
+        /* القائمة الجانبية */
+        .sidebar {
+            width: 250px; background: var(--dark-sidebar); border-left: 1px solid #334155;
+            display: flex; flex-direction: column; padding: 20px;
+        }
+        .sidebar-header { font-size: 20px; font-weight: 900; color: white; margin-bottom: 30px; text-align: center; }
+        
+        .nav-btn {
+            background: transparent; color: var(--gray-text); border: none;
+            padding: 12px 15px; text-align: right; font-family: 'Cairo'; font-size: 14px; font-weight: 600;
+            cursor: pointer; border-radius: 8px; margin-bottom: 5px; transition: 0.2s;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .nav-btn:hover { background: #334155; color: white; }
+        .nav-btn.active { background: var(--primary); color: white; }
+
+        /* منطقة المحتوى */
+        .content-area { flex: 1; padding: 30px; overflow-y: auto; }
+        .page-title { font-size: 24px; font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+
+        /* الكروت داخل الأدمن */
+        .dash-card {
+            background: var(--dark-sidebar); padding: 20px; border-radius: var(--card-radius);
+            border: 1px solid #334155; margin-bottom: 20px;
+        }
+        .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        
+        .stat-box {
+            background: #0f172a; padding: 20px; border-radius: 10px; text-align: center;
+            border: 1px solid #334155;
+        }
+        .stat-box h3 { margin: 0; font-size: 28px; color: var(--primary); }
+        .stat-box p { margin: 5px 0 0; font-size: 13px; color: var(--gray-text); }
+
+        /* الجدول الاحترافي */
+        .pro-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .pro-table th { text-align: right; padding: 12px; color: var(--gray-text); border-bottom: 1px solid #475569; }
+        .pro-table td { padding: 12px; border-bottom: 1px solid #334155; color: white; }
+        .pro-table tr:hover { background: #334155; }
+
+        /* Inputs & Buttons */
+        .dark-inp { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; font-family: 'Cairo'; margin-bottom: 10px; }
+        .action-btn { padding: 10px 20px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; color: white; font-family: 'Cairo'; }
+        
+        /* التجاوب للموبايل في لوحة التحكم */
+        @media (max-width: 768px) {
+            #admin-panel { flex-direction: column; }
+            .sidebar { width: 100%; flex-direction: row; overflow-x: auto; padding: 10px; height: auto; border-bottom: 1px solid #334155; border-left: none; }
+            .nav-btn { flex: 0 0 auto; margin-right: 5px; font-size: 12px; padding: 8px 12px; }
+            .sidebar-header { display: none; }
+            .content-area { padding: 15px; }
+        }
+
+        /* شاشة الصيانة */
+        #maint-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 5000; display: none; align-items: center; justify-content: center; flex-direction: column; }
+    </style>
+</head>
+<body>
+
+    <div id="maint-screen">
+        <h1 style="font-size:50px">🚧</h1>
+        <h2>الموقع تحت الصيانة</h2>
+        <a href="#" onclick="window.openAdmin()" style="margin-top:20px; color:#ccc; text-decoration:none; font-size:12px;">Admin</a>
+    </div>
+
+    <div class="container" id="main-view">
+        <div class="main-card">
+            
+            <div id="ads-container"></div>
+
+            <h1>#انترنت_غير_محدود_في_مصر</h1>
+
+            <div style="background:#f8fafc; padding:5px; border-radius:10px; display:flex; gap:5px; margin-bottom:20px; border:1px solid #e2e8f0;">
+                <input type="text" id="site-url" readonly style="flex:1; border:none; background:transparent; font-family:sans-serif; font-size:12px; color:#64748b;" value="...">
+                <button onclick="copyUrl()" style="background:#475569; color:white; border:none; border-radius:6px; padding:5px 15px; cursor:pointer; font-family:'Cairo';">نسخ</button>
+            </div>
+
+            <button class="btn-main bg-tele" onclick="window.open('https://t.me/+5OgzHZo4w5JhYjhk', '_blank'); track('clicks_telegram')">
+                📢 اشترك في قناة الحملة
+            </button>
+            
+            <div class="urgent-wrap" id="urgent-div">
+                <button class="btn-urgent" onclick="showForm()">مهم جدااا 🔥</button>
+            </div>
+
+            <div id="form-area">
+                <h3 style="margin:0 0 10px 0; color:#15803d; font-size:15px;">عايز تعرف الخطوة الجاية؟ سجل هنا 👇</h3>
+                <input type="text" id="u-name" placeholder="اسمك" class="inp">
+                <input type="tel" id="u-phone" placeholder="رقم الواتس" class="inp">
+                <button class="btn-main" style="background:#16a34a; margin:0;" onclick="saveUser()">انضمام ✅</button>
+            </div>
+
+            <div class="stats-grid">
+                <div><span class="stat-num" style="color:#10b981" id="s-sup">0</span> موافق</div>
+                <div><span class="stat-num" style="color:#64748b" id="s-posts">0</span> بوستات</div>
+                <div><span class="stat-num" style="color:#ef4444" id="s-rej">0</span> رافض</div>
+            </div>
+
+            <div class="vote-row">
+                <button class="v-btn yes" onclick="vote('support')">👍 أدعم</button>
+                <button class="v-btn no" onclick="vote('reject')">👎 مش مهتم</button>
+            </div>
+
+            <div style="text-align: center; margin-top: 25px;">
+                <a href="#" onclick="window.openAdmin()" style="font-size:12px; color:#cbd5e1; text-decoration:none;">Admin Login 🔐</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-panel">
+        <div class="sidebar">
+            <div class="sidebar-header">💎 Control Panel</div>
+            <button class="nav-btn active" onclick="switchTab('tab-home', this)">🏠 الرئيسية</button>
+            <button class="nav-btn" onclick="switchTab('tab-subs', this)">👥 المشتركين</button>
+            <button class="nav-btn" onclick="switchTab('tab-stats', this)">📊 التحليلات</button>
+            <button class="nav-btn" onclick="switchTab('tab-content', this)">📢 المحتوى</button>
+            <button class="nav-btn" onclick="switchTab('tab-settings', this)">⚙️ الإعدادات</button>
+            <button class="nav-btn" style="color:#ef4444; margin-top:auto;" onclick="window.location.reload()">🚪 خروج</button>
+        </div>
+
+        <div class="content-area">
+            
+            <div id="tab-home" class="page-section">
+                <div class="page-title">نظرة عامة</div>
+                <div class="dash-grid">
+                    <div class="stat-box">
+                        <h3 id="adm-sup">0</h3>
+                        <p>👍 إجمالي الداعمين</p>
+                    </div>
+                    <div class="stat-box">
+                        <h3 id="adm-rej" style="color:#ef4444">0</h3>
+                        <p>👎 الرافضين</p>
+                    </div>
+                    <div class="stat-box">
+                        <h3 id="adm-posts-view" style="color:#fff">0</h3>
+                        <p>📃 عدد المنشورات</p>
+                    </div>
+                </div>
+                
+                <div class="dash-card" style="margin-top:20px;">
+                    <h4 style="margin-top:0;">حالة الموقع</h4>
+                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <span id="site-status-text" style="font-size:18px; font-weight:bold;">...</span>
+                        <button class="action-btn" style="background:#3b82f6;" onclick="toggleSite()">تغيير الحالة (فتح/قفل)</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-subs" class="page-section" style="display:none;">
+                <div class="page-title">بيانات المشتركين</div>
+                <div class="dash-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <span>العدد الكلي: <b id="sub-count" style="color:#10b981">0</b></span>
+                        <button class="action-btn" style="background:#10b981;" onclick="dlTxt()">📥 تحميل ملف (.txt)</button>
+                    </div>
+                    
+                    <div style="overflow-x:auto;">
+                        <table class="pro-table">
+                            <thead><tr><th>الاسم</th><th>الرقم</th><th>التاريخ</th></tr></thead>
+                            <tbody id="subs-tbody"><tr><td colspan="3">جاري التحميل...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-stats" class="page-section" style="display:none;">
+                <div class="page-title">تحليل التفاعل (Clicks)</div>
+                <div class="dash-grid">
+                    <div class="stat-box"> <h3 id="c-link">0</h3> <p>🔗 نسخ اللينك</p> </div>
+                    <div class="stat-box"> <h3 id="c-tele">0</h3> <p>📢 التليجرام</p> </div>
+                    <div class="stat-box"> <h3 id="c-urg">0</h3> <p>🔥 زر "مهم"</p> </div>
+                    <div class="stat-box"> <h3 id="c-sub">0</h3> <p>✅ سجلوا فورم</p> </div>
+                </div>
+            </div>
+
+            <div id="tab-content" class="page-section" style="display:none;">
+                <div class="page-title">إدارة المحتوى</div>
+                <div class="dash-card">
+                    <label>تحديث عدد المنشورات:</label>
+                    <div style="display:flex; gap:10px; margin-top:5px;">
+                        <input type="number" id="inp-posts" class="dark-inp" style="margin:0;">
+                        <button class="action-btn" style="background:#6366f1;" onclick="updPosts()">حفظ</button>
+                    </div>
+                </div>
+
+                <div class="dash-card">
+                    <label>نشر إعلان جديد (تنبيه):</label>
+                    <div style="display:flex; gap:10px; margin-top:5px;">
+                        <input type="text" id="inp-ad" class="dark-inp" style="margin:0;" placeholder="نص الإعلان...">
+                        <button class="action-btn" style="background:#f59e0b;" onclick="pubAd()">نشر</button>
+                    </div>
+                    <div id="active-ads" style="margin-top:15px;"></div>
+                </div>
+            </div>
+
+            <div id="tab-settings" class="page-section" style="display:none;">
+                <div class="page-title">منطقة الخطر</div>
+                <div class="dash-card" style="border-color:#ef4444;">
+                    <h4 style="color:#ef4444; margin-top:0;">تصفير البيانات</h4>
+                    <p style="font-size:13px; color:#94a3b8;">هذا الإجراء سيقوم بحذف جميع الأصوات والضغطات (لكن لن يحذف المشتركين).</p>
+                    <button class="action-btn" style="background:#ef4444;" onclick="resetData()">⚠️ تصفير العدادات الآن</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, increment, setDoc, arrayUnion, arrayRemove, getDoc, collection, addDoc, getDocs, query, orderBy } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAF41zzgR3LDouYARxyM-4w2EBuwENYoOE",
+            authDomain: "fares-e1563.firebaseapp.com",
+            projectId: "fares-e1563",
+            storageBucket: "fares-e1563.firebasestorage.app",
+            messagingSenderId: "992374067000",
+            appId: "1:992374067000:web:452da213e50a1da2fdfbcd"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const setRef = doc(db, "settings", "campaignData");
+        const subRef = collection(db, "subscribers");
+        let isAdmin = false;
+
+        window.onload = () => document.getElementById('site-url').value = window.location.href;
+
+        // تهيئة البيانات
+        async function init() {
+            const s = await getDoc(setRef);
+            if(!s.exists()) {
+                await setDoc(setRef, {
+                    support:0, reject:0, posts:0, isSiteOpen:true, ads:[],
+                    clicks_copy:0, clicks_telegram:0, clicks_urgent:0, clicks_sub:0
+                });
+            }
+        }
+        init();
+
+        const track = (f) => updateDoc(setRef, {[f]: increment(1)});
+        window.track = track;
+
+        // تحديث البيانات الحية
+        onSnapshot(setRef, (doc) => {
+            if(doc.exists()) {
+                const d = doc.data();
+                
+                // الموقع
+                document.getElementById('s-sup').innerText = d.support;
+                document.getElementById('s-rej').innerText = d.reject;
+                document.getElementById('s-posts').innerText = d.posts;
+                document.getElementById('ads-container').innerHTML = d.ads.map(a=>`<div style="background:#fffbeb; color:#b45309; padding:10px; border-radius:8px; text-align:center; font-weight:bold; margin-bottom:15px; border:1px solid #fcd34d;">🔔 ${a}</div>`).join('');
+
+                // الأدمن
+                document.getElementById('adm-sup').innerText = d.support;
+                document.getElementById('adm-rej').innerText = d.reject;
+                document.getElementById('adm-posts-view').innerText = d.posts;
+                document.getElementById('site-status-text').innerText = d.isSiteOpen ? "مفتوح ✅" : "مغلق ⛔";
+                document.getElementById('site-status-text').style.color = d.isSiteOpen ? "#10b981" : "#ef4444";
+                
+                document.getElementById('c-link').innerText = d.clicks_copy || 0;
+                document.getElementById('c-tele').innerText = d.clicks_telegram || 0;
+                document.getElementById('c-urg').innerText = d.clicks_urgent || 0;
+                document.getElementById('c-sub').innerText = d.clicks_sub || 0;
+
+                document.getElementById('active-ads').innerHTML = d.ads.map(a=>`
+                    <div style="background:#1e293b; padding:8px; margin-top:5px; border-radius:5px; display:flex; justify-content:space-between;">
+                        <span>${a}</span> <button onclick="window.delAd('${a}')" style="color:#ef4444; background:none; border:none; cursor:pointer;">X</button>
+                    </div>`).join('');
+
+                // الصيانة
+                if(!isAdmin) {
+                    if(d.isSiteOpen) { document.getElementById('maint-screen').style.display='none'; document.getElementById('main-view').style.display='block'; }
+                    else { document.getElementById('maint-screen').style.display='flex'; document.getElementById('main-view').style.display='none'; }
+                }
+            }
+        });
+
+        // دوال الزوار
+        window.copyUrl = () => {
+            document.getElementById('site-url').select(); document.execCommand('copy');
+            track('clicks_copy'); alert('تم النسخ!');
+        };
+        window.showForm = () => { track('clicks_urgent'); document.getElementById('urgent-div').style.display='none'; document.getElementById('form-area').style.display='block'; };
+        
+        window.saveUser = async () => {
+            const n = document.getElementById('u-name').value;
+            const p = document.getElementById('u-phone').value;
+            if(!n || !p) return alert("اكتب البيانات");
+            await addDoc(subRef, { name:n, phone:p, date:new Date().toLocaleString('ar-EG') });
+            track('clicks_sub'); alert("تم الانضمام!");
+            document.getElementById('form-area').innerHTML = "<h3 style='color:green; text-align:center'>شكراً ليك ❤️</h3>";
+        };
+
+        window.vote = async (t) => {
+            if(localStorage.getItem('v_done_v3')) return alert("يا عم والله حسبناه! 😉\nهو أنت عايز تزور الانتخابات ولا إيه؟ 😂");
+            await updateDoc(setRef, t==='support'?{support:increment(1)}:{reject:increment(1)});
+            localStorage.setItem('v_done_v3', 'true');
+            alert("صوتك وصل!");
+        };
+
+        // === دوال الأدمن ولوحة التحكم ===
+        
+        // نظام التبويبات (Tabs)
+        window.switchTab = (tabId, btn) => {
+            document.querySelectorAll('.page-section').forEach(el => el.style.display = 'none');
+            document.getElementById(tabId).style.display = 'block';
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        };
+
+        window.openAdmin = () => {
+            if(prompt("الباسورد:") === "010630") {
+                isAdmin = true;
+                document.getElementById('maint-screen').style.display='none';
+                document.getElementById('admin-panel').style.display='flex'; // Flex عشان التقسيمة
+                loadSubs();
+            } else alert("غلط");
+        };
+
+        async function loadSubs() {
+            const q = query(subRef, orderBy("date", "desc"));
+            const s = await getDocs(q);
+            let h = ""; let c = 0;
+            s.forEach(d => {
+                const v = d.data(); c++;
+                h += `<tr><td>${v.name}</td><td>${v.phone}</td><td style="color:#94a3b8; font-size:12px;">${v.date}</td></tr>`;
+            });
+            document.getElementById('subs-tbody').innerHTML = h || "<tr><td colspan='3'>مفيش بيانات</td></tr>";
+            document.getElementById('sub-count').innerText = c;
+        }
+
+        window.dlTxt = async () => {
+            const s = await getDocs(subRef);
+            let t = "بيانات الحملة\n===========\n";
+            s.forEach(d => { const v=d.data(); t+=`${v.name} | ${v.phone} | ${v.date}\n`; });
+            const b = new Blob([t], {type:"text/plain;charset=utf-8"});
+            const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download="subs.txt"; a.click();
+        };
+
+        window.toggleSite = async () => { const s=await getDoc(setRef); updateDoc(setRef, {isSiteOpen:!s.data().isSiteOpen}); };
+        window.updPosts = () => updateDoc(setRef, {posts:Number(document.getElementById('inp-posts').value)});
+        window.pubAd = () => { const v=document.getElementById('inp-ad').value; if(v) updateDoc(setRef, {ads:arrayUnion(v)}); document.getElementById('inp-ad').value=''; };
+        window.delAd = (t) => { if(confirm('حذف؟')) updateDoc(setRef, {ads:arrayRemove(t)}); };
+        window.resetData = () => {
+            if(confirm('تصفير العدادات كلها؟')) updateDoc(setRef, {
+                support:0, reject:0, posts:0, ads:[],
+                clicks_copy:0, clicks_telegram:0, clicks_urgent:0, clicks_sub:0
+            });
+        };
+    </script>
+</body>
+</html>
